@@ -1,0 +1,47 @@
+class PremonitionCrises(QCAlgorithm):
+    def Initialize(self):
+        self.SetStartDate(2007,1,1)
+        self.SetEndDate(2010,1,1)
+        self.SetCash(100000)
+        self.citi = self.AddEquity('C',Resolution.Daily)
+        self.citi.SetDataNormalizationMode(DataNormalizationMode.Raw)
+        self.c = self.citi.Symbol
+        self.stop_loss = 0.5
+        self.first_day_close = None
+        self.sellTicket = None
+        self.invest = True
+        self.loss_limit = 0.5
+
+    def OnData(self,data):
+        if not self.Portfolio.Invested and self.invest:
+            self.invest_order = self.MarketOrder(self.c,10)
+            self.first_day_close = self.Securities['C'].Close
+            self.invest = False
+
+        if self.sellTicket is None:
+            self.sellTicket = self.StopMarketOrder(self.c,-10, self.Securities['C'].Close*self.stop_loss)
+
+        
+    def OnEndOfDay(self):
+        if self.sellTicket is None:
+            return
+
+        else:
+            self.Log(self.Securities['C'].Close)
+
+        if ((self.Securities['C'].Open - self.Securities['C'].Close)/self.Securities['C'].Open)>0.05:
+
+            updateSettings = UpdateOrderFields()
+            updateSettings.StopPrice = self.first_day_close * 0.75
+            response = self.sellTicket.Update(updateSettings)
+
+            if response.IsSuccessful:
+                self.Debug('Order Update Successfully')
+
+        
+    def OnOrderEvent(self,OrderEvent):
+        if OrderEvent.FillQuantity ==0:
+            return
+        
+        fetched = self.Transactions.GetOrderById(OrderEvent.OrderId)
+        self.Log(f'{fetched.Type} filled, for {OrderEvent.FillQuantity}')
