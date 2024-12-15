@@ -1,0 +1,28 @@
+# region imports
+from AlgorithmImports import *
+#  endregion
+from System.Drawing import Color
+class Purchase(QCAlgorithm):
+    def Initialize(self):
+        self.SetStartDate(2020,1,1)
+        self.SetEndDate(2021,1,1)
+        self.SetCash(100000)
+        self.UniverseSettings.Resolutions = Resolution.Daily
+        self.AddUniverse(self.CoarseSelection)
+    
+    def CoarseSelection(self,coarse):
+        # coarse == giant list of 8k secu
+
+        #  sorts 8k of the sec by price from high->low
+        sorted_by_price = sorted(coarse,key =lambda x:x.Price, reverse = True)
+
+        # Get symbol
+        self.list_of_symbols = [x.Symbol for x in sorted_by_price][:3]
+
+        return self.list_of_symbols
+    
+    def OnData(self,data):
+        self.Log(self.Time)
+
+        for sec in self.Securities.Values:
+            self.Log(f'{data[sec.Symbol].Symbol} opened at {data[sec.Symbol].Open}')
